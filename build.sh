@@ -4,6 +4,7 @@
 #   --dmg      also package build/RecMenu-<version>.dmg
 # Signing: ad-hoc by default. Set SIGN_IDENTITY="Developer ID Application: ..." to sign
 # for distribution, and NOTARY_PROFILE=<notarytool keychain profile> to notarize the DMG.
+# NOTARY_KEYCHAIN optionally names the keychain that holds that profile.
 set -euo pipefail
 cd "$(dirname "$0")"
 version=$(tr -d '[:space:]' < VERSION)
@@ -70,7 +71,7 @@ if [ "$dmg" = 1 ]; then
     codesign --force --timestamp --sign "$SIGN_IDENTITY" "$image"
   fi
   if [ -n "${NOTARY_PROFILE:-}" ]; then
-    xcrun notarytool submit "$image" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun notarytool submit "$image" --keychain-profile "$NOTARY_PROFILE" ${NOTARY_KEYCHAIN:+--keychain "$NOTARY_KEYCHAIN"} --wait
     xcrun stapler staple "$image"
   fi
   echo "Packaged $(pwd)/$image"

@@ -55,13 +55,8 @@ install yourself.
    green while the server runs, orange while it starts or stops, and plain
    when it is stopped.
 
-Release builds are not notarized by Apple, so macOS blocks the first launch.
-To allow it, open **System Settings → Privacy & Security**, scroll down and
-click **Open Anyway** next to the Rec Menu message. Alternatively, run:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Rec Menu.app"
-```
+Release builds are signed with a Developer ID and notarized by Apple, so they
+open without any security prompts.
 
 The first time it runs from Applications, Rec Menu adds itself as a login item.
 Turn this off with the **Open at login** checkbox in its panel.
@@ -107,7 +102,21 @@ To sign and notarize a release with an Apple Developer ID, set
 
 1. Update `VERSION`.
 2. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
-3. The release workflow builds the DMG and attaches it to a GitHub release.
+3. The release workflow builds the DMG, signs it with the Developer ID,
+   notarizes it with Apple and attaches it to a GitHub release.
+
+To test signing without publishing, run the workflow by hand from the
+**Actions** tab; it keeps the DMG as a downloadable artifact.
+
+The workflow needs these repository secrets:
+
+| Secret | Value |
+|---|---|
+| `MACOS_CERT_P12` | The Developer ID Application certificate and private key, exported as `.p12` and base64-encoded |
+| `MACOS_CERT_PASSWORD` | The password set when exporting the `.p12` |
+| `NOTARY_KEY_P8` | Contents of an App Store Connect API key (`.p8`) |
+| `NOTARY_KEY_ID` | That key's Key ID |
+| `NOTARY_ISSUER_ID` | The Issuer ID shown above the keys list in App Store Connect |
 
 ## License
 
