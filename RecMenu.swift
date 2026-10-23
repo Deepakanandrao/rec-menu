@@ -1,4 +1,4 @@
-// RecBar: a menu bar controller for the rec inference server.
+// Rec Menu: a menu bar controller for the rec inference server.
 import AppKit
 import ServiceManagement
 import SwiftUI
@@ -106,7 +106,7 @@ final class RecController: ObservableObject {
         state = .starting
         message = "Loading model…"
         // Same detached start that `rec launch` uses, so the server outlives this app.
-        let logURL = recData.appendingPathComponent("state/recbar.log")
+        let logURL = recData.appendingPathComponent("state/recmenu.log")
         Task.detached {
             FileManager.default.createFile(atPath: logURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
             let proc = Process()
@@ -381,7 +381,7 @@ struct MenuView: View {
                     .toggleStyle(.checkbox)
                     .font(.caption)
                 Spacer()
-                Button("Quit RecBar") { NSApp.terminate(nil) }
+                Button("Quit Rec Menu") { NSApp.terminate(nil) }
                     .buttonStyle(.link)
                     .font(.caption)
             }
@@ -392,7 +392,7 @@ struct MenuView: View {
 }
 
 @main
-struct RecBarApp: App {
+struct RecMenuApp: App {
     @StateObject private var rec = RecController()
 
     var body: some Scene {

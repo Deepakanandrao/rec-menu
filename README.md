@@ -1,4 +1,4 @@
-# RecBar
+# Rec Menu
 
 A small macOS menu bar app for [rec](https://github.com/recursive-oss/rec),
 Recursive's local inference engine for the Flint model.
@@ -9,7 +9,7 @@ Recursive's local inference engine for the Flint model.
 - See where the model is stored, and move it to another folder or drive
 - Optionally open at login
 
-RecBar is an independent project and is not affiliated with or endorsed by
+Rec Menu is an independent project and is not affiliated with or endorsed by
 Recursive. It does not include rec or the model; it controls the `rec` you
 install yourself.
 
@@ -23,20 +23,20 @@ install yourself.
 
 ## Install
 
-1. Download `RecBar-<version>.dmg` from the
-   [latest release](https://github.com/Deepakanandrao/RecBar/releases/latest).
-2. Open the DMG and drag **RecBar** into **Applications**.
-3. Open RecBar from Applications. A brain icon appears in the menu bar.
+1. Download `RecMenu-<version>.dmg` from the
+   [latest release](https://github.com/Deepakanandrao/rec-menu/releases/latest).
+2. Open the DMG and drag **Rec Menu** into **Applications**.
+3. Open Rec Menu from Applications. A brain icon appears in the menu bar.
 
 Release builds are not notarized by Apple, so macOS blocks the first launch.
 To allow it, open **System Settings → Privacy & Security**, scroll down and
-click **Open Anyway** next to the RecBar message. Alternatively, run:
+click **Open Anyway** next to the Rec Menu message. Alternatively, run:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/RecBar.app
+xattr -dr com.apple.quarantine "/Applications/Rec Menu.app"
 ```
 
-The first time it runs from Applications, RecBar adds itself as a login item.
+The first time it runs from Applications, Rec Menu adds itself as a login item.
 Turn this off with the **Open at login** checkbox in its panel.
 
 ## Usage
@@ -44,7 +44,7 @@ Turn this off with the **Open at login** checkbox in its panel.
 Click the menu bar icon:
 
 - **Start / Stop** runs the server in the background, the same way
-  `rec launch` does, so it keeps running if you quit RecBar.
+  `rec launch` does, so it keeps running if you quit Rec Menu.
 - **API URL** shows the OpenAI-compatible endpoint, for example
   `http://127.0.0.1:11500/v1`. Use model `flint` and the key from
   **Copy API key**.
@@ -63,11 +63,11 @@ If you move the model, `rec uninstall` removes only the symlink; delete the
 Requires the Xcode command line tools.
 
 ```bash
-git clone https://github.com/Deepakanandrao/RecBar.git
-cd RecBar
-./build.sh            # builds build/RecBar.app
+git clone https://github.com/Deepakanandrao/rec-menu.git
+cd rec-menu
+./build.sh            # builds "build/Rec Menu.app"
 ./build.sh --install  # also copies it to /Applications
-./build.sh --dmg      # also packages build/RecBar-<version>.dmg
+./build.sh --dmg      # also packages build/RecMenu-<version>.dmg
 ```
 
 To sign and notarize a release with an Apple Developer ID, set
@@ -83,4 +83,4 @@ To sign and notarize a release with an Apple Developer ID, set
 
 ## License
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE).

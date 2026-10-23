@@ -25,5 +25,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" build/RecBar-*.dmg \
-            --title "RecBar ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release create "${GITHUB_REF_NAME}" build/RecMenu-*.dmg \
+            --title "Rec Menu ${GITHUB_REF_NAME#v}" --generate-notes
