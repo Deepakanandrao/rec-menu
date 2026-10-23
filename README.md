@@ -127,7 +127,8 @@ To sign and notarize a release with an Apple Developer ID, set
 To test signing without publishing, run the workflow by hand from the
 **Actions** tab; it keeps the DMG as a downloadable artifact.
 
-The workflow needs these repository secrets:
+The workflow reads these secrets from the `release` environment, which only
+`v*` tags and `main` can use:
 
 | Secret | Value |
 |---|---|
