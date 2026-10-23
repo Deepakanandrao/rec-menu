@@ -81,6 +81,16 @@ Click the menu bar icon:
 If you move the model, `rec uninstall` removes only the symlink; delete the
 `rec-models` folder yourself.
 
+### If rec isn't installed
+
+When Rec Menu can't find rec at `~/.local/bin/rec`, it shows setup steps and a
+link to rec's GitHub page instead of the controls. Once rec is installed, the
+controls come back on their own.
+
+<p align="center">
+  <img src="docs/not-installed.png" alt="The Rec Menu panel when rec isn't installed, showing setup steps and an Open rec on GitHub button" width="380">
+</p>
+
 ## Build from source
 
 Requires the Xcode command line tools.
