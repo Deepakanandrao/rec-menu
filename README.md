@@ -55,11 +55,21 @@ install yourself.
    green while the server runs, orange while it starts or stops, and plain
    when it is stopped.
 
-Release builds are signed with a Developer ID and notarized by Apple, so they
-open without any security prompts.
+Release builds are signed with a Developer ID (Huesion Inc., team
+`W3QMF548W5`) and notarized by Apple, so they open without any security
+prompts. Rec Menu lives only in the menu bar; it has no Dock icon or window.
 
 The first time it runs from Applications, Rec Menu adds itself as a login item.
 Turn this off with the **Open at login** checkbox in its panel.
+
+### Uninstall
+
+1. Turn off **Open at login** in the panel, then click **Quit**.
+2. Move **Rec Menu** from Applications to the Trash.
+3. Optionally, remove its saved settings:
+   `defaults delete io.github.deepakanandrao.recmenu`
+
+This leaves rec and the model in place; use `rec uninstall` to remove those.
 
 ## Usage
 
@@ -117,7 +127,19 @@ To sign and notarize a release with an Apple Developer ID, set
 `NOTARY_PROFILE` to a `notarytool` keychain profile before running
 `./build.sh --dmg`.
 
+## Contributing
+
+Issues and pull requests are welcome. Pull requests from forks never run the
+release workflow and never see its secrets.
+
+To report a security problem, use
+[private vulnerability reporting](https://github.com/Deepakanandrao/rec-menu/security/advisories/new)
+instead of a public issue.
+
 ## Releasing
+
+Only the maintainer can release: a ruleset limits creating, moving and
+deleting `v*` tags to repository admins.
 
 1. Update `VERSION`.
 2. Commit, then tag and push: `git tag v1.0.0 && git push origin v1.0.0`.
