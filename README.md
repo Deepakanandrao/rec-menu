@@ -81,6 +81,15 @@ Click the menu bar icon:
 If you move the model, `rec uninstall` removes only the symlink; delete the
 `rec-models` folder yourself.
 
+### Server states
+
+The status line under the title, and the color of the menu bar icon, show
+what the server is doing.
+
+| Stopped | Starting | Running |
+|:---:|:---:|:---:|
+| <img src="docs/stopped.png" alt="Rec Menu with the server stopped and a Start Server button" width="250"> | <img src="docs/starting.png" alt="Rec Menu while the server starts, showing Loading model" width="250"> | <img src="docs/screenshot.png" alt="Rec Menu with the server running and a Stop Server button" width="250"> |
+
 ### If rec isn't installed
 
 When Rec Menu can't find rec at `~/.local/bin/rec`, it shows setup steps and a
