@@ -48,6 +48,7 @@ final class RecController: ObservableObject {
     }
 
     @Published var openAtLogin = SMAppService.mainApp.status == .enabled
+    @Published var installed = FileManager.default.isExecutableFile(atPath: recBinary)
 
     private var timer: Timer?
 
@@ -68,12 +69,11 @@ final class RecController: ObservableObject {
     var displayURL: String { endpoint.isEmpty ? "http://127.0.0.1:\(port)/v1" : endpoint }
 
     var recInstalled: Bool { FileManager.default.isExecutableFile(atPath: recBinary) }
-    static let recMissing = "rec isn't installed. Install it from github.com/recursive-oss/rec"
 
     func refresh() {
-        guard recInstalled else {
+        installed = recInstalled
+        guard installed else {
             state = .stopped
-            message = Self.recMissing
             return
         }
         Task.detached {
@@ -95,7 +95,7 @@ final class RecController: ObservableObject {
 
     func start() {
         guard recInstalled else {
-            message = Self.recMissing
+            installed = false
             return
         }
         guard let p = Int(portText), (1...65535).contains(p) else {
@@ -325,6 +325,7 @@ struct MenuView: View {
     @State private var copied: String?
 
     var statusText: String {
+        guard rec.installed else { return "rec not installed" }
         switch rec.state {
         case .stopped: return "Stopped"
         case .starting: return "Starting…"
@@ -334,6 +335,7 @@ struct MenuView: View {
     }
 
     var statusColor: Color {
+        guard rec.installed else { return .orange }
         switch rec.state {
         case .running: return .green
         case .starting, .stopping: return .orange
@@ -347,16 +349,20 @@ struct MenuView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
-            powerButton
-            PanelSection(title: "Connection") {
-                endpointRow
-                Divider()
-                keyRow
-                Divider()
-                portRow
+            if rec.installed {
+                powerButton
+                PanelSection(title: "Connection") {
+                    endpointRow
+                    Divider()
+                    keyRow
+                    Divider()
+                    portRow
+                }
+                PanelSection(title: "Model") { modelRow }
+                if !rec.message.isEmpty { banner }
+            } else {
+                notInstalled
             }
-            PanelSection(title: "Model") { modelRow }
-            if !rec.message.isEmpty { banner }
             Divider()
             footer
         }
@@ -364,6 +370,7 @@ struct MenuView: View {
         .frame(width: 380)
         .animation(.easeOut(duration: 0.15), value: rec.state)
         .animation(.easeOut(duration: 0.15), value: rec.message)
+        .animation(.easeOut(duration: 0.15), value: rec.installed)
     }
 
     // MARK: Sections
@@ -381,13 +388,44 @@ struct MenuView: View {
                 HStack(spacing: 6) {
                     Circle().fill(statusColor).frame(width: 7, height: 7)
                     Text(statusText)
-                    Text("·").foregroundStyle(.tertiary)
-                    Text(rec.model.capitalized)
+                    if rec.installed {
+                        Text("·").foregroundStyle(.tertiary)
+                        Text(rec.model.capitalized)
+                    }
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)
             }
             Spacer()
+        }
+    }
+
+    var notInstalled: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Install rec to get started")
+                    .font(.headline)
+                Text("Rec Menu controls rec, Recursive's local inference engine for the Flint model. rec isn't installed on this Mac yet.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            PanelSection(title: "Steps") {
+                Label("Install rec using the command in its README", systemImage: "1.circle")
+                Label("Download Flint with \"rec pull\"", systemImage: "2.circle")
+                Label("Rec Menu picks it up automatically", systemImage: "3.circle")
+            }
+            Button {
+                NSWorkspace.shared.open(URL(string: "https://github.com/recursive-oss/rec#install")!)
+            } label: {
+                Label("Open rec on GitHub", systemImage: "arrow.up.right.square")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            Text("Rec Menu looks for rec in ~/.local/bin/rec, where rec's installer puts it.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -487,7 +525,7 @@ struct MenuView: View {
     }
 
     var banner: some View {
-        let isError = rec.message.hasPrefix("Failed") || rec.message.contains("failed") || rec.message.hasPrefix("rec isn't") || rec.message.hasPrefix("No API")
+        let isError = rec.message.hasPrefix("Failed") || rec.message.contains("failed") || rec.message.hasPrefix("No API")
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: isError ? "exclamationmark.triangle" : "info.circle")
                 .foregroundStyle(isError ? .orange : .secondary)
@@ -547,6 +585,7 @@ struct PanelSection<Content: View>: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 10) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.quaternary.opacity(0.5)))
         }
