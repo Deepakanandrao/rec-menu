@@ -167,14 +167,14 @@ final class RecController: ObservableObject {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    func copyAPIKey() {
+    // rec creates the key the first time the server starts.
+    func apiKey() -> String? {
         let r = runRec(["auth", "token"])
-        if r.code == 0 {
-            copy(r.out.trimmingCharacters(in: .whitespacesAndNewlines))
-            message = "API key copied"
-        } else {
+        guard r.code == 0 else {
             message = "No API key yet; start the server once"
+            return nil
         }
+        return r.out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func refreshModelsPath() {
@@ -287,8 +287,42 @@ final class RecController: ObservableObject {
     }
 }
 
+// The logo is a black-on-transparent PNG, so it works as a template image.
+let logo: NSImage = {
+    let image = Bundle.main.image(forResource: "logo") ?? NSImage(systemSymbolName: "triangle", accessibilityDescription: nil)!
+    image.isTemplate = true
+    return image
+}()
+
+func menuBarIcon(_ state: ServerState) -> NSImage {
+    let size = NSSize(width: 18, height: 18)
+    let tint: NSColor? = switch state {
+    case .running: .systemGreen
+    case .starting, .stopping: .systemOrange
+    case .stopped: nil
+    }
+    // Stopped uses the plain template icon so it matches the other menu bar icons.
+    let icon = NSImage(size: size, flipped: false) { rect in
+        // The logo's strokes are thin at 18pt; drawing it slightly offset thickens them.
+        for (dx, dy) in [(-0.3, 0.0), (0.3, 0.0), (0.0, -0.3), (0.0, 0.3)] {
+            logo.draw(in: rect.offsetBy(dx: dx, dy: dy))
+        }
+        if let tint {
+            tint.set()
+            rect.fill(using: .sourceAtop)
+        }
+        return true
+    }
+    icon.isTemplate = tint == nil
+    icon.accessibilityDescription = "Rec Menu"
+    return icon
+}
+
 struct MenuView: View {
     @ObservedObject var rec: RecController
+    @State private var key: String?
+    @State private var keyVisible = false
+    @State private var copied: String?
 
     var statusText: String {
         switch rec.state {
@@ -307,87 +341,256 @@ struct MenuView: View {
         }
     }
 
+    var isBusy: Bool { rec.state == .starting || rec.state == .stopping }
+    var isUp: Bool { rec.state == .running || rec.state == .starting }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Circle().fill(statusColor).frame(width: 8, height: 8)
-                Text("\(rec.model.capitalized) · \(statusText)").font(.headline)
-                Spacer()
-                if rec.state == .running || rec.state == .starting {
-                    Button("Stop") { rec.stop() }
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            powerButton
+            PanelSection(title: "Connection") {
+                endpointRow
+                Divider()
+                keyRow
+                Divider()
+                portRow
+            }
+            PanelSection(title: "Model") { modelRow }
+            if !rec.message.isEmpty { banner }
+            Divider()
+            footer
+        }
+        .padding(18)
+        .frame(width: 380)
+        .animation(.easeOut(duration: 0.15), value: rec.state)
+        .animation(.easeOut(duration: 0.15), value: rec.message)
+    }
+
+    // MARK: Sections
+
+    var header: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: logo)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(.primary)
+                .frame(width: 30, height: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Rec Menu")
+                    .font(.title3.weight(.semibold))
+                HStack(spacing: 6) {
+                    Circle().fill(statusColor).frame(width: 7, height: 7)
+                    Text(statusText)
+                    Text("·").foregroundStyle(.tertiary)
+                    Text(rec.model.capitalized)
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+
+    var powerButton: some View {
+        Button {
+            isUp ? rec.stop() : rec.start()
+        } label: {
+            HStack(spacing: 8) {
+                if isBusy {
+                    ProgressView().controlSize(.small)
                 } else {
-                    Button("Start") { rec.start() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(rec.state == .stopping || rec.moving)
+                    Image(systemName: isUp ? "stop.fill" : "play.fill")
                 }
+                Text(isBusy ? (rec.state == .starting ? "Loading model…" : "Stopping…") : (isUp ? "Stop Server" : "Start Server"))
             }
+            .frame(maxWidth: .infinity)
+        }
+        .controlSize(.large)
+        .modifier(PowerButtonStyle(prominent: !isUp))
+        .disabled(rec.state == .stopping || rec.moving)
+    }
 
-            Divider()
+    var endpointRow: some View {
+        Row(icon: "link", label: "Endpoint") {
+            Text(rec.displayURL.replacingOccurrences(of: "http://", with: ""))
+                .font(.body.monospaced())
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+            Spacer(minLength: 4)
+            copyButton(id: "url") { rec.displayURL }
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("API URL").font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Text(rec.displayURL)
-                        .font(.system(.body, design: .monospaced))
+    var keyRow: some View {
+        Row(icon: "key", label: "API key") {
+            Group {
+                if keyVisible, let key {
+                    Text(key)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                         .textSelection(.enabled)
-                    Spacer()
-                    Button { rec.copy(rec.displayURL); rec.message = "URL copied" } label: {
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .help("Copy URL")
-                }
-                Button("Copy API key") { rec.copyAPIKey() }
-                    .buttonStyle(.link)
-                    .font(.caption)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Port").font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    TextField("11500", text: $rec.portText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 90)
-                        .onSubmit { rec.applyPort() }
-                    Button(rec.state == .running ? "Apply & Restart" : "Apply") { rec.applyPort() }
-                        .disabled(rec.portText == String(rec.port))
+                } else {
+                    Text(String(repeating: "•", count: 14)).foregroundStyle(.secondary)
                 }
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Model location").font(.caption).foregroundStyle(.secondary)
-                Text(rec.modelsPath)
-                    .font(.system(.caption, design: .monospaced))
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
-                HStack {
-                    Button("Show in Finder") { rec.revealModels() }
-                    Button("Change…") { rec.chooseModelsLocation() }
-                    if rec.isCustomLocation {
-                        Button("Reset") { rec.resetModelsLocation() }
-                    }
-                }
-                .disabled(rec.moving)
+            .font(.body.monospaced())
+            Spacer(minLength: 4)
+            IconButton(systemName: keyVisible ? "eye.slash" : "eye", help: keyVisible ? "Hide key" : "Show key") {
+                if !keyVisible, key == nil { key = rec.apiKey() }
+                if key != nil { keyVisible.toggle() }
             }
+            copyButton(id: "key") { key ?? rec.apiKey() }
+        }
+    }
 
-            if !rec.message.isEmpty {
-                Text(rec.message).font(.caption).foregroundStyle(.secondary)
-            }
-
-            Divider()
-
-            HStack {
-                Toggle("Open at login", isOn: Binding(get: { rec.openAtLogin }, set: { rec.setOpenAtLogin($0) }))
-                    .toggleStyle(.checkbox)
-                    .font(.caption)
-                Spacer()
-                Button("Quit Rec Menu") { NSApp.terminate(nil) }
-                    .buttonStyle(.link)
-                    .font(.caption)
+    var portRow: some View {
+        Row(icon: "number", label: "Port") {
+            TextField("11500", text: $rec.portText)
+                .textFieldStyle(.roundedBorder)
+                .font(.body.monospaced())
+                .frame(width: 80)
+                .onSubmit { rec.applyPort() }
+            Spacer(minLength: 4)
+            if rec.portText != String(rec.port) {
+                Button(rec.state == .running ? "Apply & Restart" : "Apply") { rec.applyPort() }
+                    .transition(.opacity)
             }
         }
-        .padding(14)
-        .frame(width: 320)
+    }
+
+    var modelRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "folder")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+                Text(rec.modelsPath.replacingOccurrences(of: home.path, with: "~"))
+                    .font(.body.monospaced())
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .help(rec.modelsPath)
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 8) {
+                Button("Show in Finder") { rec.revealModels() }
+                Button("Move…") { rec.chooseModelsLocation() }
+                if rec.isCustomLocation {
+                    Button("Reset") { rec.resetModelsLocation() }
+                }
+                Spacer()
+                if rec.moving { ProgressView().controlSize(.small) }
+            }
+            .disabled(rec.moving)
+        }
+    }
+
+    var banner: some View {
+        let isError = rec.message.hasPrefix("Failed") || rec.message.contains("failed") || rec.message.hasPrefix("rec isn't") || rec.message.hasPrefix("No API")
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: isError ? "exclamationmark.triangle" : "info.circle")
+                .foregroundStyle(isError ? .orange : .secondary)
+            Text(rec.message)
+                .font(.callout)
+                .foregroundStyle(isError ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .transition(.opacity)
+    }
+
+    var footer: some View {
+        HStack {
+            Toggle("Open at login", isOn: Binding(get: { rec.openAtLogin }, set: { rec.setOpenAtLogin($0) }))
+                .toggleStyle(.checkbox)
+            Spacer()
+            Button("Quit") { NSApp.terminate(nil) }
+                .keyboardShortcut("q")
+        }
+        .font(.callout)
+    }
+
+    // MARK: Helpers
+
+    func copyButton(id: String, value: @escaping () -> String?) -> some View {
+        IconButton(systemName: copied == id ? "checkmark" : "doc.on.doc", help: "Copy", tint: copied == id ? .green : nil) {
+            guard let text = value() else { return }
+            rec.copy(text)
+            copied = id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                if copied == id { copied = nil }
+            }
+        }
+    }
+}
+
+// Start is the primary action; Stop stays a plain button.
+struct PowerButtonStyle: ViewModifier {
+    let prominent: Bool
+
+    func body(content: Content) -> some View {
+        if prominent {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.bordered)
+        }
+    }
+}
+
+struct PanelSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) { content }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.quaternary.opacity(0.5)))
+        }
+    }
+}
+
+struct Row<Content: View>: View {
+    let icon: String
+    let label: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text(label)
+                .foregroundStyle(.secondary)
+                .frame(width: 66, alignment: .leading)
+            content
+        }
+        .font(.body)
+        .frame(minHeight: 24)
+    }
+}
+
+struct IconButton: View {
+    let systemName: String
+    let help: String
+    var tint: Color?
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .contentTransition(.symbolEffect(.replace))
+                .foregroundStyle(tint ?? (hovering ? .primary : .secondary))
+                .frame(width: 26, height: 24)
+                .background(RoundedRectangle(cornerRadius: 5).fill(hovering ? Color.primary.opacity(0.08) : .clear))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help)
     }
 }
 
@@ -399,7 +602,7 @@ struct RecMenuApp: App {
         MenuBarExtra {
             MenuView(rec: rec)
         } label: {
-            Image(systemName: rec.state == .running ? "brain.head.profile.fill" : "brain.head.profile")
+            Image(nsImage: menuBarIcon(rec.state))
         }
         .menuBarExtraStyle(.window)
     }

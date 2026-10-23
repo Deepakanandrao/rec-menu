@@ -26,7 +26,9 @@ install yourself.
 1. Download `RecMenu-<version>.dmg` from the
    [latest release](https://github.com/Deepakanandrao/rec-menu/releases/latest).
 2. Open the DMG and drag **Rec Menu** into **Applications**.
-3. Open Rec Menu from Applications. A brain icon appears in the menu bar.
+3. Open Rec Menu from Applications. A triangle icon appears in the menu bar. It is
+   green while the server runs, orange while it starts or stops, and plain
+   when it is stopped.
 
 Release builds are not notarized by Apple, so macOS blocks the first launch.
 To allow it, open **System Settings → Privacy & Security**, scroll down and
