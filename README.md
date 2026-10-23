@@ -1,13 +1,38 @@
 # Rec Menu
 
 A small macOS menu bar app for [rec](https://github.com/recursive-oss/rec),
-Recursive's local inference engine for the Flint model.
+Recursive's local inference engine for its
+[Flint](https://www.recursive.com/updates/introducing-recursive-flint) model.
 
-- Start and stop the rec server
-- See and copy the API URL, and copy the API key
-- Change the server port
-- See where the model is stored, and move it to another folder or drive
-- Optionally open at login
+<p align="center">
+  <img src="docs/screenshot.png" alt="The Rec Menu panel showing the server running, its endpoint, API key, port and model location" width="380">
+</p>
+
+## TL;DR
+
+- **What it is:** a menu bar app for Mac that controls `rec` without the
+  terminal.
+- **What it does:** starts and stops the Flint server, shows the API URL and
+  key so you can copy them into your client, changes the port, and shows or
+  moves where the model is stored. The menu bar icon turns green while the
+  server runs.
+- **How to use it:**
+  1. Install [rec](https://github.com/recursive-oss/rec) and download Flint
+     with `rec pull`.
+  2. Download the DMG from the
+     [latest release](https://github.com/Deepakanandrao/rec-menu/releases/latest)
+     and drag **Rec Menu** into **Applications**.
+  3. Click the triangle in the menu bar, then **Start Server**.
+  4. Point your client at the endpoint with model `flint` and the API key from
+     the panel.
+
+> [!NOTE]
+> Rec Menu is brand new, as are rec and Flint. Expect rough edges, and please
+> [open an issue](https://github.com/Deepakanandrao/rec-menu/issues) if
+> something doesn't work.
+
+Rec Menu is for macOS only. It has been tested on a MacBook Pro with an M4 Pro
+chip and 48 GB of memory.
 
 Rec Menu is an independent project and is not affiliated with or endorsed by
 Recursive. It does not include rec or the model; it controls the `rec` you
@@ -15,8 +40,8 @@ install yourself.
 
 ## Requirements
 
-- An Apple Silicon Mac that meets rec's requirements (M4 Pro, M5 Pro or M5
-  Max with at least 48 GB of memory)
+- A Mac with Apple Silicon that meets rec's requirements (M4 Pro, M5 Pro or
+  M5 Max with at least 48 GB of memory)
 - macOS 14 or later
 - [rec](https://github.com/recursive-oss/rec) installed in `~/.local/bin/rec`
   (the default for rec's installer)
@@ -47,12 +72,13 @@ Click the menu bar icon:
 
 - **Start / Stop** runs the server in the background, the same way
   `rec launch` does, so it keeps running if you quit Rec Menu.
-- **API URL** shows the OpenAI-compatible endpoint, for example
-  `http://127.0.0.1:11500/v1`. Use model `flint` and the key from
-  **Copy API key**.
+- **Endpoint** shows the OpenAI-compatible API URL, for example
+  `http://127.0.0.1:11500/v1`, with a button to copy it. Use model `flint`.
+- **API key** is required by rec for every request. The eye button shows or
+  hides it, and the copy button copies it.
 - **Port** changes the port. If the server is running, it restarts on the new
   port.
-- **Model location** shows where rec keeps the model. **Change…** moves it to
+- **Model location** shows where rec keeps the model. **Move…** moves it to
   a `rec-models` folder in a location you choose and leaves a symlink at
   `~/.local/share/rec/models`, so the `rec` command keeps working. **Reset**
   moves it back.
